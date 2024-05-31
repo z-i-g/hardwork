@@ -1,14 +1,10 @@
 package com.zig.hardwork.cyclomaticcomplexity;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.beans.factory.annotation.Value;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class ExampleTwo {
+
+    public static int divide(int a, int b) {
+        return a / b;
+    }
 
     public void fillEntity(ContextApp contextApp) {
         ApplicationType.PartnerInfo partnerInfo = contextApp.getApplication().getPartnerInfo();
