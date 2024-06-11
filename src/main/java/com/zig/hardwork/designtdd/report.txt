@@ -1,0 +1,74 @@
+1.
+public LprDecisionRs processing(LprDecisionRq lprDecisionRq) {
+        ContextApp contextApp = createContext(lprDecisionRq);
+        businessValidate(contextApp);
+        saveLprDecision(contextApp);
+
+        LprDecisionRs lprDecisionRs = LprDecisionRs.builder()
+                .status("OK")
+                .errorCode("0")
+                .build();
+        return lprDecisionRs;
+    }
+
+Думая на 2 уровне, идешь по ТЗ и на каждое "требование" пишешь тест.
+То есть допустим есть требование "провалидировать и сохранить" - берешь и пишешь соответствующие методы под тесты.
+Максимум потом можешь отрефакторить и причесать код.
+______________________________________________________________________________________________
+
+public LprDecisionRs processing(LprDecisionRq lprDecisionRq) {
+        ContextApp contextApp = initialContextService.create(lprDecisionRq);
+        businessValidationService.validate(contextApp);
+        applicationService.saveLprDecision(contextApp);
+        participantService.saveLprDecision(contextApp);
+
+        return LprDecisionRs.builder()
+                .status(LprRsStatus.OK.name())
+                .build();
+    }
+
+ Думая на 3 уровне, реально больше "думаешь", рисуешь в голове примерные классы, разделяешь программу на части.
+ Заранее продумываешь исключительные ситуации (выделяешь например коды и ошибки в отдельный enum).
+ Уже когда пишешь тест под очередное "требование" чувствуется что нужно его отделить, то есть вынести в отдельный сервис
+ и тестировать только конкретный функционал.
+ Таким образом формируется на мой взгляд сразу относительно правильный дизайн.
+
+ 2. Как пример для тестирования бизнес валидации, которую изначально сделал просто методом в том же классе где вызывается.
+ Приходилось сначала продумать как "дойти" нормально до его вызова, и добавление нового теста всегда почти ломало предыдущие.
+
+ @Test
+     public void whenPositiveLprDecisionAndLimitIdIsNull_thenThrow() {
+         lprDecisionRq.setLprDecision("A");
+         Mockito.when(applicationService.findByAppNo(lprDecisionRq.getAppNo())).thenReturn(application);
+         Mockito.when(participantService.findAllByAppNo(lprDecisionRq.getAppNo())).thenReturn(participants);
+         Exception exception = assertThrows(LimitIdNotFoundException.class, () -> lprDecisionProcessing.processing(lprDecisionRq));
+
+         assertEquals("LimitId не может быть null при положительном решении", exception.getLocalizedMessage());
+     }
+
+  ________________________________________________________________________________________________________________
+  Вот пример кода придерживаешься дизайна:
+
+
+
+    @Test
+    public void whenPositiveLprDecisionAndLimitIdIsNull_thenThrow() {
+        lprDecisionRq.setLprDecision("A");
+        Exception exception = assertThrows(LimitIdNotFoundException.class, () -> {
+            businessValidationService.validate(contextApp);
+        });
+
+        assertEquals("LimitId не может быть null при положительном решении", exception.getLocalizedMessage());
+    }
+
+3.
+Скажу честно было трудно освоить этот урок, перечитывал пару раз.
+TDD тоже использовал впервые, было некомфортно вначале, потом вроде мозг перестроился)
+Вот про 3 уровня это вообще отдельная история, надеюсь я уловил мысль правильно.
+В целом поймал себя на мысли, что абстрагироваться от кода мне довольно трудно, все равно мыслишь в голове кодом.
+Раньше, даже на работе когда читал требования, вначале казалось что все норм написано, а нюанся всегда всплывали во
+время кодинга.
+Но скажу точно одно, что при практике все получается, очередную рабочую доработку на прошлой неделе, прям по полкам все
+получилось разложить, практически все нюансы удалось предвидеть. TDD однозначно буду использовать, к сожалению на это
+вообще времени не выделяют (тестирование), только силами тестеровщиков. Код при TDD пишется только необходимый,
+это точно могу сказать.
